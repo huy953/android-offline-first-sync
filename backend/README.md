@@ -1,10 +1,32 @@
 # Backend Đồng Bộ Hai Chiều Cho Ứng Dụng Android Offline-First
 
-Hệ thống Backend được thiết kế và xây dựng theo chuẩn **Layered Architecture** (Kiến trúc phân tầng) sử dụng **FastAPI**, **SQLAlchemy** và **SQLite**, phục vụ cơ chế đồng bộ hai chiều (Two-Way Synchronization) cho ứng dụng di động Android hoạt động theo mô hình **Offline-First**.
+> **Đề tài giữa kỳ:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
+> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
+> **Sinh viên thực hiện:**  
+> - PHẠM THANH NHÂN – 524H0020  
+> - TRẦN GIA HUY – 524H0092  
+>
+> **Công nghệ:** Python 3.12, FastAPI, SQLAlchemy 2.0, Pydantic v2, SQLite (tasks.db)
 
 ---
 
-## 1. Kiến Trúc Hệ Thống (Layered Architecture)
+## ⚡ 1. Khởi Chạy Nhanh (1-Click Demo)
+
+Để phục vụ demo nhanh cho Giảng viên mà không cần gõ lệnh thủ công:
+* **Cách 1 (Nhanh nhất):** Ra thư mục gốc `Midterm-Mobile` và nhấp đúp chuột vào file **`CHAY_DEMO.bat`**:
+  * Tự động khởi động máy chủ FastAPI tại cổng `8000` (lắng nghe `0.0.0.0`).
+  * Tự động cấu hình thông cổng USB (`adb reverse tcp:8000 tcp:8000`) cho điện thoại cắm cáp.
+  * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại `http://localhost:8000/docs`.
+* **Cách 2 (Thủ công qua lệnh):**
+  ```powershell
+  cd backend
+  .\venv\Scripts\Activate.ps1
+  uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+  ```
+
+---
+
+## 2. Kiến Trúc Hệ Thống (Layered Architecture)
 
 Hệ thống được tổ chức thành các tầng phân tách độc lập (Separation of Concerns), giúp mã nguồn dễ bảo trì, mở rộng và kiểm thử:
 
@@ -36,15 +58,15 @@ backend/
 │   ├── test_api.py           # Unit & Integration tests cho REST API
 │   └── test_sync.py          # Kiểm thử Idempotency (TC06), LWW (TC07), Soft Delete (TC08)
 ├── requirements.txt          # Danh sách thư viện phụ thuộc
-├── .gitignore                # Cấu hình loại trừ file rác, tests, DB local khi push Git
+├── tasks.db                  # File cơ sở dữ liệu SQLite cục bộ
 └── README.md                 # Tài liệu hướng dẫn triển khai, tích hợp và kiểm thử
 ```
 
 ---
 
-## 2. Mô Hình Dữ Liệu & Nguyên Lý Đồng Bộ
+## 3. Mô Hình Dữ Liệu & Nguyên Lý Đồng Bộ
 
-### 2.1. Thực thể Task (Database Entity)
+### 3.1. Thực thể Task (Database Entity)
 | Thuộc tính | Kiểu dữ liệu | Phạm vi | Ý nghĩa chi tiết |
 | :--- | :--- | :--- | :--- |
 | `id` | `VARCHAR(36)` | Client & Server | Khóa chính, chuỗi UUIDv4 do Android client tự sinh khi tạo mới offline |
@@ -54,11 +76,11 @@ backend/
 | `created_at` | `BIGINT` | Client & Server | Unix Epoch timestamp (mili-giây) thời điểm bản ghi được tạo ra (bất biến) |
 | `updated_at` | `BIGINT` | Client & Server | Unix Epoch timestamp (mili-giây) dùng để so khớp xung đột (**Last-Write-Wins**) |
 
-> 📌 **Lưu ý về `sync_status`**: Trường `sync_status` (`SYNCED`, `PENDING_INSERT`, `PENDING_UPDATE`, `PENDING_DELETE`) **chỉ tồn tại trong Room DB trên thiết bị Android**. Database Backend không lưu trường này vì dữ liệu nằm trên Server mặc nhiên là dữ liệu chuẩn đã lưu thành công.
+> 📌 **Lưu ý về `sync_status`**: Trường `sync_status` (`SYNCED`, `PENDING`, `SYNCING`, `FAILED`) **chỉ tồn tại trong Room DB trên thiết bị Android**. Database Backend không lưu trường này vì dữ liệu nằm trên Server mặc nhiên là dữ liệu chuẩn đã lưu thành công.
 
 ---
 
-### 2.2. Chiến lược giải quyết xung đột: Last-Write-Wins (LWW)
+### 3.2. Chiến lược giải quyết xung đột: Last-Write-Wins (LWW)
 Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint `POST /tasks/sync`:
 1. **Bản ghi chưa tồn tại trên Server**: Server thực hiện `INSERT` bản ghi mới và ghi nhận ID vào danh sách `applied_ids`.
 2. **Bản ghi đã tồn tại**: Server so khớp giá trị `updated_at`:
@@ -68,7 +90,7 @@ Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint
 
 ---
 
-### 2.3. Xóa logic (Soft Delete)
+### 3.3. Xóa logic (Soft Delete)
 Để hỗ trợ ứng dụng hoạt động ngoại tuyến:
 - Khi người dùng bấm xóa task, hệ thống **không** xóa vật lý (`DELETE FROM tasks`).
 - Bản ghi được cập nhật `is_deleted = True` và nâng `updated_at` lên thời điểm hiện tại.
@@ -76,18 +98,14 @@ Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint
 
 ---
 
-### 2.4. Tính Lặp An Toàn (Idempotency)
+### 3.4. Tính Lặp An Toàn (Idempotency)
 Nếu kết nối mạng chập chờn khiến client gửi lại cùng một payload nhiều lần, cơ chế LWW đảm bảo không gây ra lỗi `500`, không sinh ra các bản ghi trùng lặp (không duplicate task ID) và duy trì tính toàn vẹn dữ liệu.
 
 ---
 
-## 3. Cài Đặt & Khởi Chạy Backend
+## 4. Cài Đặt Môi Trường Từ Đầu (Setup Guide)
 
-### 3.1. Yêu cầu môi trường
-- Python 3.10 trở lên.
-- Trình quản lý gói `pip`.
-
-### 3.2. Cài đặt thư viện
+### 4.1. Cài đặt thư viện
 Tại thư mục `backend`:
 ```powershell
 # Tạo môi trường ảo (nếu chưa có)
@@ -98,52 +116,37 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 # Windows (CMD):
 .\venv\Scripts\activate.bat
-# Linux / macOS:
-source venv/bin/activate
 
 # Cài đặt các gói phụ thuộc
 pip install -r requirements.txt
 ```
 
-### 3.3. Khởi chạy Server
-Chạy máy chủ Uvicorn lắng nghe trên mọi giao tiếp mạng (`0.0.0.0`) để máy ảo Android và thiết bị thật đều kết nối được:
+### 4.2. Khởi chạy Server
+Lắng nghe trên `0.0.0.0` để cả Emulator và điện thoại thật đều kết nối được:
 ```powershell
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-- **Truy cập Swagger UI trực quan trên máy tính:** `http://127.0.0.1:8000/docs` (hoặc `http://localhost:8000/docs`)
-- **Kiểm tra trạng thái máy chủ:** `http://127.0.0.1:8000/health`
+- **Truy cập Swagger UI trực quan:** `http://localhost:8000/docs`
+- **Kiểm tra trạng thái máy chủ (Healthcheck):** `http://localhost:8000/health`
 
 ---
 
-## 4. Hướng Dẫn Kết Nối Từ Thiết Bị Android
+## 5. Hướng Dẫn Kết Nối Từ Thiết Bị Android
 
-### 4.1. Cấu hình địa chỉ Base URL trong Android Retrofit
-1. **Máy ảo Android Studio Emulator**:
-   ```kotlin
-   const val BASE_URL = "http://10.0.2.2:8000/"
-   ```
-   *(Địa chỉ `10.0.2.2` là alias mạng đặc biệt của máy ảo trỏ về `127.0.0.1` của máy tính host).*
+Ứng dụng Android hỗ trợ **Cấu hình Base URL động** ngay trên giao diện (Vào menu **⋮ > Cấu hình server**):
 
-2. **Thiết bị thật kết nối qua cùng mạng Wi-Fi**:
-   Xác định địa chỉ IP nội bộ của máy chủ (dùng lệnh `ipconfig` trên Windows hoặc `ifconfig`/`ip a` trên Linux):
-   ```kotlin
-   const val BASE_URL = "http://192.168.1.X:8000/"
-   ```
-
-### 4.2. Cho phép HTTP Cleartext trong Android
-Trong tệp `AndroidManifest.xml`, thêm thuộc tính:
-```xml
-<application
-    android:usesCleartextTraffic="true"
-    ...>
-```
+| Trường hợp thử nghiệm | Địa chỉ Base URL cần nhập | Ghi chú |
+| :--- | :--- | :--- |
+| **Máy ảo Android Emulator** | `http://10.0.2.2:8000/` | `10.0.2.2` là alias mạng đặc biệt của máy ảo trỏ về localhost máy tính host. |
+| **Máy thật cắm cáp USB** | `http://localhost:8000/` | **Khuyên dùng khi demo:** Chạy lệnh `adb reverse tcp:8000 tcp:8000` (đã tích hợp trong `CHAY_DEMO.bat`), không lo đổi Wi-Fi trường. |
+| **Máy thật chung Wi-Fi** | `http://192.168.x.x:8000/` | Dùng lệnh `ipconfig` trên Windows để lấy IP mạng Wi-Fi của laptop. |
 
 ---
 
-## 5. Danh Sách API Endpoints
+## 6. Danh Sách API Endpoints
 
-### 5.1. Incremental Pull (Lấy dữ liệu đồng bộ tăng dần)
+### 6.1. Incremental Pull (Lấy dữ liệu đồng bộ tăng dần)
 - **Method**: `GET`
 - **Path**: `/tasks?since={timestamp}`
 - **Tham số Query**:
@@ -162,7 +165,7 @@ Trong tệp `AndroidManifest.xml`, thêm thuộc tính:
 ]
 ```
 
-### 5.2. Batch Push Sync (Đồng bộ đẩy lên kèm Last-Write-Wins)
+### 6.2. Batch Push Sync (Đồng bộ đẩy lên kèm Last-Write-Wins)
 - **Method**: `POST`
 - **Path**: `/tasks/sync`
 - **Request Body** (chấp nhận object `{"tasks": [...]}` hoặc mảng `[...]`):
@@ -191,116 +194,20 @@ Trong tệp `AndroidManifest.xml`, thêm thuộc tính:
 }
 ```
 
-### 5.3. Tạo Mới Task Trực Tiếp (Client Test)
+### 6.3. Tạo Mới Task Đơn Lẻ
 - **Method**: `POST`
 - **Path**: `/tasks`
-- **Request Body**:
-```json
-{
-  "title": "Chuẩn bị thuyết trình",
-  "is_completed": false
-}
-```
 - **Phản hồi**: `201 Created`
 
-### 5.4. Cập Nhật Task
+### 6.4. Cập Nhật Task Đơn Lẻ
 - **Method**: `PUT`
 - **Path**: `/tasks/{task_id}`
-- **Request Body** (cho phép gửi từng phần nhờ `exclude_unset=True`):
-```json
-{
-  "title": "Chuẩn bị thuyết trình (Đã chỉnh sửa)",
-  "is_completed": true
-}
-```
 - **Phản hồi**: `200 OK`
 
-### 5.5. Xóa Logic Task (Soft Delete)
+### 6.5. Xóa Logic Task (Soft Delete)
 - **Method**: `DELETE`
 - **Path**: `/tasks/{task_id}`
-- **Phản hồi**: `200 OK`
-```json
-{
-  "id": "e4b6c968-3e4a-4a25-83e9-79f90240db71",
-  "title": "Chuẩn bị thuyết trình",
-  "is_completed": true,
-  "is_deleted": true,
-  "created_at": 1700000001000,
-  "updated_at": 1700000010000
-}
-```
-
----
-
-## 6. Kịch Bản Kiểm Thử Thực Chiến (Manual Testing trên Swagger UI)
-
-Bạn có thể mở trình duyệt truy cập **`http://127.0.0.1:8000/docs`** và thử nghiệm tuần tự 6 kịch bản sau:
-
-### Kịch bản 1: Tạo mới Task khi offline và đẩy lên (Batch Insert)
-* **Thao tác**: Mở `POST /tasks/sync` $\rightarrow$ Nhập JSON:
-  ```json
-  {
-    "tasks": [
-      {
-        "id": "aaaaaaaa-1111-4111-8111-111111111111",
-        "title": "Mua bánh mì buổi sáng (Tạo offline)",
-        "is_completed": false,
-        "is_deleted": false,
-        "created_at": 1700000001000,
-        "updated_at": 1700000001000
-      }
-    ]
-  }
-  ```
-* **Kỳ vọng**: `applied_ids` chứa ID trên, `ignored_ids` rỗng.
-
-### Kịch bản 2: Kiểm thử mạng chập chờn gửi lặp (Idempotency)
-* **Thao tác**: Bấm **Execute** lại một lần nữa với cùng JSON của Kịch bản 1.
-* **Kỳ vọng**: Trả về `200 OK`, không lỗi trùng khóa, database vẫn chỉ có 1 bản ghi duy nhất.
-
-### Kịch bản 3: Xung đột dữ liệu cũ bị từ chối (Stale Write - LWW)
-* **Thao tác**: Mở `POST /tasks/sync` $\rightarrow$ Gửi bản ghi có `updated_at = 1700000000500` (nhỏ hơn `1700000001000` trên Server):
-  ```json
-  {
-    "tasks": [
-      {
-        "id": "aaaaaaaa-1111-4111-8111-111111111111",
-        "title": "Nội dung cũ của máy B",
-        "is_completed": true,
-        "is_deleted": false,
-        "created_at": 1700000001000,
-        "updated_at": 1700000000500
-      }
-    ]
-  }
-  ```
-* **Kỳ vọng**: `ignored_ids` chứa ID trên. Dữ liệu trên server được bảo toàn.
-
-### Kịch bản 4: Dữ liệu mới hơn ghi đè thành công (Fresher Update - LWW)
-* **Thao tác**: Mở `POST /tasks/sync` $\rightarrow$ Gửi bản ghi có `updated_at = 1700000005000` (> `1700000001000`):
-  ```json
-  {
-    "tasks": [
-      {
-        "id": "aaaaaaaa-1111-4111-8111-111111111111",
-        "title": "Mua bánh mì (ĐÃ ĂN XONG)",
-        "is_completed": true,
-        "is_deleted": false,
-        "created_at": 1700000001000,
-        "updated_at": 1700000005000
-      }
-    ]
-  }
-  ```
-* **Kỳ vọng**: ID được thêm vào `applied_ids`, dữ liệu trên server được cập nhật.
-
-### Kịch bản 5: Đồng bộ xóa logic (Soft Delete Sync)
-* **Thao tác**: Mở `POST /tasks/sync` $\rightarrow$ Gửi task có `is_deleted = true`, `updated_at = 1700000010000`.
-* **Kỳ vọng**: `applied_ids` nhận task đó, database vẫn giữ bản ghi với `is_deleted = true`.
-
-### Kịch bản 6: Kéo dữ liệu tăng dần (Incremental Pull)
-* **Thao tác**: Mở `GET /tasks` $\rightarrow$ Nhập `since = 1700000003000` $\rightarrow$ Bấm Execute.
-* **Kỳ vọng**: Server chỉ trả về các task được cập nhật sau mốc `since` (bao gồm task đã xóa mềm ở Kịch bản 5).
+- **Phản hồi**: `200 OK` (Bản ghi được gán `is_deleted = true`)
 
 ---
 
@@ -308,8 +215,8 @@ Bạn có thể mở trình duyệt truy cập **`http://127.0.0.1:8000/docs`** 
 
 Hệ thống đi kèm bộ kiểm thử toàn diện với SQLite in-memory, kiểm chứng độc lập và không ảnh hưởng đến cơ sở dữ liệu thật:
 ```powershell
-# Đứng tại thư mục backend và chạy pytest
-pytest -v
+# Đứng tại thư mục backend và chạy pytest qua môi trường ảo:
+.\venv\Scripts\python.exe -m pytest -v
 ```
 
 ### Các kịch bản kiểm thử trọng tâm:

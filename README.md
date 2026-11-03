@@ -1,18 +1,31 @@
 # 📱 BÁO CÁO KỸ THUẬT & TÀI LIỆU DỰ ÁN GIỮA KỲ
 ## ỨNG DỤNG ANDROID OFFLINE-FIRST VỚI FASTAPI BACKEND
 
-> **Môn học:** Lập trình Thiết bị Di động (Mobile Programming)  
+> **Môn học:** Phát triển Ứng dụng Di động (Mobile Programming)  
+> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
+> **Đề tài 1:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
 > **Kiến trúc trọng tâm:** Offline-First Architecture • Single Source of Truth (SSOT) • Two-Way Sync Engine • Last-Write-Wins (LWW)  
-> **Nền tảng công nghệ:** Android (Kotlin, Jetpack Compose/XML, Room DB, WorkManager, Retrofit 2) & Backend (Python FastAPI, SQLAlchemy, SQLite/PostgreSQL)
+> **Nền tảng công nghệ:** Android (Kotlin, Jetpack Compose, Room Database, WorkManager, Retrofit 2) & Backend (Python 3.12, FastAPI, SQLAlchemy 2.0, SQLite)
 
 ---
 
 ## 👥 THÔNG TIN NHÓM THỰC HIỆN
 
 | STT | Họ và Tên | Mã số sinh viên (MSSV) | Vai trò chính | Phụ trách chi tiết |
-| :-: | :--- | :--- | :--- | :--- |
-| **1** | [Họ và Tên Thành viên A] | [MSSV A] | **Android Lead & UI/UX** | UI/UX, Room DB, ViewModel, StateFlow, Bàn giao D1, D2, D8 |
-| **2** | [Họ và Tên Thành viên B] | [MSSV B] | **Backend & Sync Engine** | FastAPI Server, WorkManager, Retrofit 2, Bàn giao D4, D5, D6, D7 |
+| :-: | :--- | :---: | :--- | :--- |
+| **1** | **PHẠM THANH NHÂN** | **524H0020** | **Android Lead & UI/UX** | UI Jetpack Compose, Room DB, ViewModel, StateFlow, Bàn giao D1, D2, D8 |
+| **2** | **TRẦN GIA HUY** | **524H0092** | **Backend & Sync Engine** | FastAPI Server, WorkManager, SyncEngine LWW, Bàn giao D4, D5, D6, D7 |
+
+---
+
+## ⚡ KHỞI CHẠY NHANH BUỔI DEMO (1-CLICK)
+
+Để phục vụ giảng viên chấm điểm thực nghiệm nhanh nhất:
+1. **Trên máy tính:** Bấm đúp chuột vào file **`CHAY_DEMO.bat`** tại thư mục gốc:
+   * Tự động khởi động máy chủ FastAPI tại cổng `8000`.
+   * Tự động thông cổng qua USB (`adb reverse tcp:8000 tcp:8000`).
+   * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại `http://localhost:8000/docs`.
+2. **Trên điện thoại / Máy ảo:** Mở icon ứng dụng Todo lên và thao tác thêm/sửa/xóa trực tiếp.
 
 ---
 
@@ -21,7 +34,7 @@
 2. [Quy ước Dữ liệu Dùng chung (Data Contract)](#2-quy-ước-dữ-liệu-dùng-chung-data-contract)
 3. [Thiết kế Backend API (Python FastAPI)](#3-thiết-kế-backend-api-python-fastapi)
 4. [Cấu trúc Thư mục Dự án](#4-cấu-trúc-thư-mục-dự-án)
-5. [Phân chia Nhiệm vụ & Danh mục Bàn giao (Deliverables)](#5-phân-chia-nhiệm-vụ--danh-mục-bàn-giao-deliverables)
+5. [Phân chia Nhiệm vụ & Danh mục Bàn giao (Deliverables D1 - D8)](#5-phân-chia-nhiệm-vụ--danh-mục-bàn-giao-deliverables-d1---d8)
 6. [Kịch bản Kiểm thử Thực nghiệm (Test Cases TC01 - TC09)](#6-kịch-bản-kiểm-thử-thực-nghiệm-test-cases-tc01---tc09)
 7. [Hướng dẫn Cài đặt & Chạy Thực nghiệm](#7-hướng-dẫn-cài-đặt--chạy-thực-nghiệm)
 
@@ -29,64 +42,26 @@
 
 ## 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG
 
-Dự án áp dụng chặt chẽ triết lý **Offline-First Architecture**. Trong mô hình này:
-- Cơ sở dữ liệu cục bộ (**Room Database**) trên thiết bị đóng vai trò là nguồn dữ liệu duy nhất (**Single Source of Truth - SSOT**) mà giao diện người dùng (UI) quan sát và hiển thị.
-- Mọi thao tác Thêm / Sửa / Xóa từ người dùng đều được ghi nhận trực tiếp vào Room DB ngay lập tức mà **không cần chờ kết nối Internet**.
+Dự án áp dụng chặt chẽ triết lý **Offline-First Architecture**:
+- Cơ sở dữ liệu cục bộ (**Room Database**) trên thiết bị đóng vai trò là Nguồn chân lý duy nhất (**Single Source of Truth - SSOT**) mà giao diện người dùng (UI) quan sát và hiển thị.
+- Mọi thao tác Thêm / Sửa / Xóa từ người dùng đều được ghi nhận trực tiếp vào Room DB ngay lập tức mà **không cần chờ kết nối Internet** (độ trễ $< 10\text{ ms}$).
 - Tiến trình nền (**WorkManager - SyncWorker**) chịu trách nhiệm đồng bộ hai chiều (Two-Way Sync) giữa Room DB và FastAPI Server khi đáp ứng đủ điều kiện về kết nối mạng (`NetworkType.CONNECTED`).
 
 ### 1.1. Sơ đồ Luồng Dữ liệu Kiến trúc (Data Flowchart)
 
-```mermaid
-flowchart TD
-    User([👤 Người dùng]) -->|1. Thao tác Thêm / Sửa / Xóa| UI[Giao diện UI: Jetpack Compose / XML]
-    UI -->|2. Gọi hàm xử lý| VM[ViewModel & StateFlow]
-    VM -->|3. Gửi lệnh cập nhật| Repo[TaskRepository]
-    
-    Repo -->|4. Ghi trực tiếp vào| Room[(Room Database - SSOT)]
-    Room -.->|5. Tự động phản hồi dữ liệu mới qua Flow| UI
-    
-    Repo -->|6. Kích hoạt đồng bộ| WM[WorkManager: SyncWorker]
-    
-    subgraph Sync_Engine [Tác vụ ngầm & Mạng]
-        WM <-->|7. Đọc bản ghi PENDING & Ghi đè SYNCED| Room
-        WM <-->|8. Đẩy / Kéo dữ liệu qua Retrofit 2 REST API| Server[FastAPI Server]
-    end
-    
-    Server <-->|9. Lưu trữ tập trung & Xử lý xung đột| ServerDB[(Database Server: SQLite / PostgreSQL)]
-```
+<p align="center">
+  <img src="docs/images/architecture_flow.png" alt="Sơ đồ Kiến trúc Phân tầng 5 lớp và Luồng Dữ liệu" width="450"/>
+  <br>
+  <em>Hình 1.1: Sơ đồ kiến trúc phân tầng 5 lớp và luồng dữ liệu một chiều (SSOT)</em>
+</p>
 
 ### 1.2. Sơ đồ Trình tự Đồng bộ Hai chiều (Sync Sequence Diagram)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Người dùng
-    participant UI as Giao diện UI
-    participant Room as Room DB (SSOT)
-    participant WM as WorkManager (SyncWorker)
-    participant API as Retrofit API Client
-    participant Server as FastAPI Server
-    participant DB as Server DB
-
-    User->>UI: Thao tác Thêm / Sửa / Xóa Task
-    UI->>Room: Ghi dữ liệu cục bộ (sync_status = PENDING_*)
-    Room-->>UI: Cập nhật giao diện tức thì qua Flow
-    
-    Note over WM: Kích hoạt khi có mạng (NetworkType.CONNECTED)
-    WM->>Room: Đọc danh sách bản ghi có sync_status != SYNCED
-    Room-->>WM: Trả về danh sách Task cần đẩy lên (Push)
-    
-    WM->>API: POST /api/v1/tasks/sync (Payload batch)
-    API->>Server: Gửi dữ liệu thay đổi
-    Server->>DB: Kiểm tra bản ghi & áp dụng Last-Write-Wins (LWW)
-    DB-->>Server: Lưu dữ liệu & trích xuất thay đổi mới từ Server
-    Server-->>API: 200 OK + Danh sách Task mới nhất
-    API-->>WM: Nhận phản hồi thành công
-    
-    WM->>Room: Cập nhật bản ghi vừa đẩy thành SYNCED
-    WM->>Room: Ghi đè dữ liệu mới từ Server vào Room (Pull)
-    Room-->>UI: UI tự động hiển thị dữ liệu mới nhất
-```
+<p align="center">
+  <img src="docs/images/sync_sequence.png" alt="Sơ đồ Trình tự Đồng bộ Hai chiều và Phân giải LWW" width="850"/>
+  <br>
+  <em>Hình 1.2: Sơ đồ trình tự tương tác hai chiều và phân giải xung đột Last-Write-Wins (LWW)</em>
+</p>
 
 ---
 
@@ -98,284 +73,120 @@ sequenceDiagram
 
 | Tên trường | Kiểu dữ liệu | Phạm vi | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- |
-| `id` | `String (UUID v4)` | Client & Server | Khóa chính dạng chuỗi UUID do Client sinh ngẫu nhiên khi tạo bản ghi mới (tránh trùng ID khi Offline). |
-| `title` | `String` | Client & Server | Tiêu đề công việc (bắt buộc, độ dài tối đa 255 ký tự). |
-| `description` | `String?` | Client & Server | Mô tả chi tiết công việc (cho phép `null` / rỗng). |
-| `is_completed` | `Boolean` | Client & Server | Trạng thái hoàn thành (`true`: đã xong, `false`: chưa xong). Mặc định `false`. |
-| `created_at` | `Long (Unix ms)` | Client & Server | Mốc thời gian tạo bản ghi ban đầu (milliseconds). |
-| `updated_at` | `Long (Unix ms)` | Client & Server | Mốc thời gian chỉnh sửa mới nhất (milliseconds) để phân giải xung đột (**Last-Write-Wins**). |
-| `is_deleted` | `Boolean` | Client & Server | Cờ xóa logic (**Soft Delete**). Không xóa vật lý để Server và các thiết bị khác nhận diện lệnh xóa. |
-| `sync_status` | `String / Enum` | **Chỉ có ở Room DB** | Trạng thái đồng bộ cục bộ: `SYNCED`, `PENDING_INSERT`, `PENDING_UPDATE`, `PENDING_DELETE`, `FAILED`. |
-
-### 2.2. Chi tiết Cơ chế Xử lý Cốt lõi
-1. **Client-Generated UUID (UUID v4):**
-   - Tránh việc phụ thuộc vào `Auto-Increment ID` của Server.
-   - Cho phép thiết bị tạo hàng loạt công việc ngoại tuyến mà không sợ đụng độ ID với các máy khác.
-2. **Soft Delete (`is_deleted = true`):**
-   - Khi người dùng xóa task ngoại tuyến, bản ghi không bị `DELETE` khỏi database mà được gán `is_deleted = true`, `sync_status = PENDING_DELETE`.
-   - Khi có mạng, cờ này được gửi lên Server để Server cập nhật trạng thái xóa tương ứng.
-3. **Last-Write-Wins (LWW Conflict Resolution):**
-   - Trong trường hợp cùng một bản ghi được chỉnh sửa trên 2 thiết bị khác nhau khi offline, bản ghi nào có `updated_at` lớn hơn (chỉnh sửa muộn hơn theo mốc thời gian) sẽ được ghi nhận là bản ghi chiến thắng.
+| `id` | `VARCHAR(36)` | Client & Server | Khóa chính dạng chuỗi UUID v4 do Client sinh ngẫu nhiên khi tạo bản ghi mới (triệt tiêu va chạm ID khi Offline). |
+| `title` | `VARCHAR(255)` | Client & Server | Tiêu đề công việc (bắt buộc, không để trống). |
+| `is_completed` | `BOOLEAN` | Client & Server | Trạng thái hoàn thành (`true`: đã xong, `false`: chưa xong). Mặc định `false`. |
+| `is_deleted` | `BOOLEAN` | Client & Server | Cờ xóa logic (**Soft Delete / Tombstone**). Không xóa vật lý để Server và các thiết bị khác nhận diện lệnh xóa. |
+| `created_at` | `BIGINT` | Client & Server | Mốc thời gian tạo bản ghi ban đầu (Unix epoch ms). |
+| `updated_at` | `BIGINT` | Client & Server | Mốc thời gian chỉnh sửa mới nhất (Unix epoch ms) để phân giải xung đột (**Last-Write-Wins**). |
+| `syncStatus` | `Enum` | **Chỉ có ở Room DB** | Trạng thái đồng bộ cục bộ: `SYNCED`, `PENDING`, `SYNCING`, `FAILED`. |
+| `lastError` | `TEXT` | **Chỉ có ở Room DB** | Chuỗi thông báo lỗi kỹ thuật nếu lần đồng bộ gần nhất thất bại. |
 
 ---
 
-## 3. THIẾT KẾ BACKEND (PYTHON FASTAPI)
+## 3. THIẾT KẾ BACKEND API (PYTHON FASTAPI)
 
-FastAPI đóng vai trò là Server trung tâm, cung cấp các RESTful API phục vụ đồng bộ lô (Batch Sync) và truy vấn dữ liệu tăng dần (Incremental Fetch).
-
-### 3.1. Danh sách Endpoints RESTful
+FastAPI đóng vai trò là Server trung tâm, cung cấp các RESTful API phục vụ đồng bộ lô (Batch Sync) và truy vấn dữ liệu tăng dần (Incremental Fetch):
 
 | Phương thức | Endpoint | Chức năng chính | Ghi chú |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/health` | Kiểm tra tình trạng hoạt động của Server | Dùng để ping trước khi thực hiện tác vụ nặng |
-| `GET` | `/api/v1/tasks` | Tải danh sách công việc | Hỗ trợ Query Param `since_timestamp` để lấy dữ liệu tăng dần |
-| `POST` | `/api/v1/tasks/sync` | API Đồng bộ lô (Batch Sync & Conflict Resolution) | Nhận danh sách thay đổi từ Client và trả về danh sách cập nhật từ Server |
-
-### 3.2. Chi tiết Đặc tả API & Payload Mẫu
-
-#### 🟢 `GET /api/v1/health`
-- **Mục đích:** Healthcheck kiểm tra kết nối Server.
-- **Response `200 OK`:**
-```json
-{
-  "status": "healthy",
-  "server_time": 1729605600000
-}
-```
-
----
-
-#### 🔵 `GET /api/v1/tasks`
-- **Mục đích:** Tải danh sách công việc (hỗ trợ đồng bộ tăng dần).
-- **Query Parameters:**
-  - `since_timestamp` *(Long, tùy chọn)*: Thời điểm đồng bộ lần cuối (Unix timestamp ms).
-- **Quy tắc xử lý:**
-  - Không truyền `since_timestamp`: Trả về toàn bộ bản ghi chưa xóa (`is_deleted == false`).
-  - Có truyền `since_timestamp`: Trả về tất cả bản ghi có `updated_at > since_timestamp` (bao gồm cả các bản ghi có `is_deleted == true` để Client xóa tương ứng).
-- **Response `200 OK`:**
-```json
-[
-  {
-    "id": "c3a7266b-4e12-4217-b715-d9e26efbbba9",
-    "title": "Hoàn thành báo cáo Giữa kỳ",
-    "description": "Viết tài liệu D1 đến D8",
-    "is_completed": false,
-    "updated_at": 1729605700000,
-    "is_deleted": false
-  }
-]
-```
-
----
-
-#### 🟠 `POST /api/v1/tasks/sync` (Trọng tâm Đề tài)
-- **Mục đích:** Đẩy danh sách các thay đổi từ Client lên và giải quyết xung đột bằng chiến lược **Last-Write-Wins (LWW)**.
-- **Request Body:**
-```json
-{
-  "client_last_sync_timestamp": 1729605000000,
-  "tasks": [
-    {
-      "id": "c3a7266b-4e12-4217-b715-d9e26efbbba9",
-      "title": "Hoàn thành báo cáo Giữa kỳ (Updated)",
-      "description": "Đã hoàn thành sơ đồ Mermaid",
-      "is_completed": true,
-      "updated_at": 1729605800000,
-      "is_deleted": false
-    }
-  ]
-}
-```
-- **Thuật toán xử lý trên Server:**
-  1. Duyệt qua từng bản ghi trong danh sách `tasks` Client gửi lên.
-  2. Truy vấn bản ghi trong Server DB theo `id`:
-     - **Nếu chưa tồn tại:** Thêm mới vào Server DB.
-     - **Nếu đã tồn tại:** So sánh `client.updated_at` với `server.updated_at`:
-       - *Nếu `client.updated_at >= server.updated_at`:* Cập nhật bản ghi Server theo dữ liệu Client (Client thắng).
-       - *Nếu `client.updated_at < server.updated_at`:* Bỏ qua cập nhật (Server thắng - xung đột xảy ra).
-  3. Truy vấn các bản ghi mới trên Server có `updated_at > client_last_sync_timestamp` mà Client chưa có.
-  4. Trả về mã `200 OK` kèm danh sách các bản ghi mới nhất từ Server.
-- **Response `200 OK`:**
-```json
-{
-  "status": "success",
-  "server_timestamp": 1729605850000,
-  "synced_count": 1,
-  "server_updates": []
-}
-```
+| `GET` | `/health` | Kiểm tra tình trạng hoạt động của Server | Healthcheck trả về server time |
+| `GET` | `/tasks` | Tải danh sách công việc | Hỗ trợ Query Param `since` để lấy dữ liệu tăng dần |
+| `POST` | `/tasks/sync` | API Đồng bộ lô (Batch Sync & LWW) | Đẩy lô 100 task lên, phân loại `applied_ids` và `ignored_ids` |
+| `POST` | `/tasks` | Tạo mới task đơn lẻ | Dùng để test trực tiếp trên Swagger UI |
+| `PUT` | `/tasks/{id}` | Cập nhật task đơn lẻ | Dùng để giả lập thiết bị thứ hai tạo xung đột |
+| `DELETE` | `/tasks/{id}` | Xóa logic task | Gán `is_deleted = true` |
 
 ---
 
 ## 4. CẤU TRÚC THƯ MỤC DỰ ÁN
 
-Để phục vụ phát triển độc lập và phân chia công việc rõ ràng, dự án được tổ chức như sau:
-
 ```text
 Midterm-Mobile/
-├── android/                         # Mã nguồn ứng dụng Android
+├── CHAY_DEMO.bat                    # Script 1-Click khởi chạy toàn bộ hệ thống demo
+├── android/                         # Mã nguồn ứng dụng Android (Kotlin + Jetpack Compose)
 │   ├── app/
-│   │   ├── src/main/
-│   │   │   ├── java/com/example/offlinefirsttodo/
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── local/       # Room Database, TaskEntity, TaskDao
-│   │   │   │   │   ├── remote/      # Retrofit API Interface, DTOs
-│   │   │   │   │   └── repository/  # TaskRepositoryImpl
-│   │   │   │   ├── domain/          # Model, Repository Interface, Use Cases
-│   │   │   │   ├── presentation/    # Jetpack Compose UI / Activity, ViewModel
-│   │   │   │   └── workers/         # WorkManager SyncWorker
-│   │   │   ├── res/                 # Layouts, Drawables, Values
-│   │   │   └── AndroidManifest.xml
+│   │   ├── src/main/java/com/example/offlinefirsttodo/
+│   │   │   ├── data/
+│   │   │   │   ├── local/           # Room Database, TaskEntity, TaskDao, SyncLogEntity
+│   │   │   │   ├── remote/          # Retrofit API Interface, DTOs, ApiProvider
+│   │   │   │   └── repository/      # TaskRepository (Offline-First, Monotonic Timestamp)
+│   │   │   ├── sync/                # SyncEngine (Push/Pull, CAS), SyncWorker, SyncScheduler
+│   │   │   ├── ui/                  # Compose TaskScreen, TaskViewModel, Dialogs
+│   │   │   └── util/                # ConnectivityObserver, AppPrefs, TimeFormat
 │   │   └── build.gradle.kts
-│   └── build.gradle.kts
+│   └── README.md                    # Hướng dẫn chi tiết cho ứng dụng Android
 │
 ├── backend/                         # Mã nguồn Python FastAPI Server
 │   ├── app/
-│   │   ├── api/                     # Router endpoints (/health, /tasks, /sync)
-│   │   ├── core/                    # Config, database connection
-│   │   ├── models/                  # SQLAlchemy ORM Models
+│   │   ├── models/                  # SQLAlchemy ORM Models (Task)
 │   │   ├── schemas/                 # Pydantic Schemas (Request/Response)
-│   │   └── crud/                    # Database query & conflict handling logic
-│   ├── main.py                      # FastAPI entrypoint
-│   └── requirements.txt             # Danh sách thư viện Python
+│   │   ├── crud/                    # Data Access Layer
+│   │   ├── services/                # sync_service.py (Thuật toán LWW, Batch Sync)
+│   │   ├── routers/                 # REST API Endpoints
+│   │   └── main.py                  # Điểm khởi tạo FastAPI app
+│   ├── tests/                       # Bộ kiểm thử tự động (pytest)
+│   ├── tasks.db                     # Cơ sở dữ liệu SQLite
+│   ├── requirements.txt             # Danh sách thư viện Python
+│   └── README.md                    # Hướng dẫn chi tiết cho Backend
 │
-├── docs/                            # Tài liệu bàn giao (D1 - D8)
-│   ├── D1_Architecture_MVVM.md
-│   ├── D2_UI_UseCase.md
-│   ├── D3_Database_Design.md
-│   ├── D4_API_Documentation.md
-│   ├── D5_Sync_Algorithm.md
-│   ├── D6_Test_Plan.md
-│   ├── D7_Test_Report.md
-│   └── D8_Demo_Video_Link.md
-└── README.md
+└── docs/                            # Tài liệu bàn giao & Báo cáo kỹ thuật
+    ├── D4_API_Documentation.md      # Tài liệu đặc tả RESTful API
+    ├── D5_Sync_Algorithm.md         # Thuật toán đồng bộ hai chiều & phân giải LWW
+    └── CHUONG_3_DONG_BO_HAI_CHIEU_VA_XU_LY_XUNG_DOT.md # Nội dung chi tiết Chương 3
 ```
 
 ---
 
-## 5. PHÂN CHIA NHIỆM VỤ & DANH MỤC BÀN GIAO (DELIVERABLES)
+## 5. PHÂN CHIA NHIỆM VỤ & DANH MỤC BÀN GIAO (DELIVERABLES D1 - D8)
 
-### 5.1. Phân chia Công việc Chi tiết
+### 5.1. Bảng Trạng Thái Hoàn Thành Các Deliverables
 
-#### 👨‍💻 THÀNH VIÊN A: ANDROID UI, LOCAL DATABASE & PRESENTATION
-- **Giao diện & Trải nghiệm Người dùng (UI/UX):**
-  - Màn hình danh sách công việc (Task List) với khả năng vuốt để làm mới (Pull-to-refresh).
-  - Trạng thái trực quan: Badge / Biểu tượng hiển thị trạng thái đồng bộ cạnh từng task (`SYNCED` 🟢, `PENDING` 🟡, `FAILED` 🔴).
-  - Dialog / Màn hình Thêm & Chỉnh sửa công việc.
-  - Nút bấm **"Đồng bộ ngay" (Manual Sync)** giúp chủ động kiểm thử và trình diễn báo cáo.
-- **Cơ sở dữ liệu cục bộ (Room DB):**
-  - Khai báo `TaskEntity` chuẩn Data Contract.
-  - Xây dựng `TaskDao`:
-    - `getTasksFlow()`: Truy vấn danh sách chưa xóa `WHERE is_deleted = 0 ORDER BY updated_at DESC`, trả về `Flow<List<TaskEntity>>`.
-    - `getPendingTasks()`: Lấy danh sách task có `sync_status != 'SYNCED'`.
-    - Xóa mềm: Cập nhật `is_deleted = 1`, `sync_status = 'PENDING_DELETE'`, cập nhật `updated_at`.
-- **Tầng ViewModel & Quản lý Trạng thái:**
-  - Áp dụng kiến trúc MVVM, giao tiếp qua `StateFlow`.
-  - Phản hồi tức thì lên UI khi người dùng Thêm / Sửa / Xóa (Zero UI Latency).
-- **Phụ trách tài liệu bàn giao:** **D1, D2, D3, D8**.
-
----
-
-#### 👨‍💻 THÀNH VIÊN B: FASTAPI SERVER, NETWORKING & WORKMANAGER SYNC ENGINE
-- **FastAPI Server & Database:**
-  - Cài đặt FastAPI, Pydantic v2, SQLAlchemy với SQLite/PostgreSQL.
-  - Cung cấp Swagger UI tự động tại `/docs`.
-  - Triển khai thuật toán xử lý xung đột Last-Write-Wins (LWW) và Soft Delete.
-- **Mạng & Tích hợp Android (Networking):**
-  - Cấu hình thư viện Retrofit 2, OkHttpClient (HttpLoggingInterceptor, Connection Timeout).
-  - Khởi tạo interface `TaskApiService`.
-- **Tác vụ nền & Bộ máy đồng bộ (WorkManager Sync Engine):**
-  - Triển khai `SyncWorker` kế thừa `CoroutineWorker`.
-  - **Quy trình 3 bước chuẩn:**
-    1. **Push:** Đọc toàn bộ bản ghi `PENDING_*` trong Room DB đẩy lên `/api/v1/tasks/sync`.
-    2. **Update Local:** Đánh dấu các bản ghi vừa đẩy thành `SYNCED`.
-    3. **Pull:** Lấy dữ liệu mới nhất từ Server ghi đè lại vào Room DB.
-  - Ràng buộc mạng (`Constraints`): Chỉ kích hoạt khi có kết nối mạng (`NetworkType.CONNECTED`).
-  - Đảm bảo tính duy nhất qua `ExistingWorkPolicy.KEEP` tránh chồng chéo luồng.
-  - Cấu hình tự động thử lại theo hàm mũ (**Exponential Backoff Retry**).
-- **Phụ trách tài liệu bàn giao:** **D4, D5, D6, D7**.
-
----
-
-### 5.2. Danh mục Bàn giao (Deliverables Checklist D1 - D8)
-
-| Mã | Hạng mục Bàn giao | Người phụ trách | Trạng thái |
-| :-: | :--- | :-: | :-: |
-| **D1** | Tài liệu Thiết kế Kiến trúc Ứng dụng (MVVM & Offline-First SSOT) | Thành viên A | ⏳ Đang thực hiện |
-| **D2** | Tài liệu Đặc tả Yêu cầu, Use Case & Thiết kế UI/UX Mockups | Thành viên A | ⏳ Đang thực hiện |
-| **D3** | Đặc tả Thiết kế Cơ sở Dữ liệu Cục bộ (Room Entity, DAO, Index) | Thành viên A | ⏳ Đang thực hiện |
-| **D4** | Tài liệu Đặc tả RESTful API, Hướng dẫn Chạy Backend & Swagger UI | Thành viên B | ⏳ Đang thực hiện |
-| **D5** | Tài liệu Thuật toán Đồng bộ & Cơ chế Phân giải Xung đột (LWW) | Thành viên B | ⏳ Đang thực hiện |
-| **D6** | Kịch bản & Kế hoạch Kiểm thử Toàn diện (TC01 đến TC09) | Thành viên B | ⏳ Đang thực hiện |
-| **D7** | Báo cáo Kết quả Thực nghiệm & Đo lường Hiệu năng Đồng bộ | Thành viên B | ⏳ Đang thực hiện |
-| **D8** | Gói Cài đặt Hoàn chỉnh (File APK Release & Video Demo Thực nghiệm) | Cả 2 thành viên | ⏳ Đang thực hiện |
+| Mã | Hạng mục Bàn giao | Người phụ trách | Trạng thái thực tế |
+| :-: | :--- | :-: | :---: |
+| **D1** | Báo cáo nghiên cứu lý thuyết (Offline-First, MVVM, Room, Retrofit, WorkManager, LWW) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 1 Báo cáo PDF) |
+| **D2** | Tài liệu phân tích và thiết kế (FR/NFR, Use Case, Kiến trúc 5 tầng, Sequence, ERD) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 2 Báo cáo PDF) |
+| **D3** | Mã nguồn ứng dụng Android (Kotlin, Jetpack Compose, Room, WorkManager, Retrofit) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Thư mục `android/`) |
+| **D4** | Mã nguồn máy chủ và API (FastAPI, SQLAlchemy, CRUD, Batch Sync, Swagger UI) | Trần Gia Huy | ✅ **Đã hoàn thành** (Thư mục `backend/`) |
+| **D5** | Mô-đun đồng bộ & Thuật toán xử lý xung đột (Flowchart, Monotonic, Soft Delete, CAS) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 3 Báo cáo PDF) |
+| **D6** | Bộ kiểm thử và kết quả kiểm thử (Bảng TC01-TC09, ảnh chụp app thực tế) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 4 Báo cáo PDF) |
+| **D7** | Báo cáo thực nghiệm và đánh giá hiệu năng (Đo lô 10, 50, 100 bản ghi, ưu/khuyết điểm) | Cả 2 thành viên | ✅ **Đã hoàn thành** (Chương 5 Báo cáo PDF) |
+| **D8** | Sản phẩm trình diễn & Hướng dẫn (File APK, Video demo, Script `CHAY_DEMO.bat`) | Cả 2 thành viên | ✅ **Đã hoàn thành** (File APK + Script demo) |
 
 ---
 
 ## 6. KỊCH BẢN KIỂM THỬ THỰC NGHIỆM (TEST CASES TC01 - TC09)
 
-Bảng kịch bản bắt buộc phục vụ quá trình phát triển, kiểm thử chức năng và chấm điểm đồ án:
-
-| Mã TC | Kịch bản kiểm thử | Các bước thực hiện | Kết quả mong đợi | Trạng thái |
+| Mã TC | Kịch bản kiểm thử | Thao tác thực hiện | Kết quả thực tế | Trạng thái |
 | :---: | :--- | :--- | :--- | :---: |
-| **TC01** | **Tạo việc khi có mạng** | 1. Bật mạng Internet.<br>2. Tạo mới Task A trên ứng dụng. | Task A lưu vào Room DB, hiển thị ngay trên UI. WorkManager đẩy lên FastAPI. Trạng thái hiển thị: `SYNCED` 🟢. | Sẵn sàng |
-| **TC02** | **Tạo/Sửa khi tắt mạng** | 1. Tắt Wi-Fi / 4G (Airplane Mode).<br>2. Tạo Task B và sửa tiêu đề Task A. | Dữ liệu lập tức hiển thị trên UI. Trạng thái task chuyển thành `PENDING_INSERT` / `PENDING_UPDATE` 🟡. Không có lỗi/crash. | Sẵn sàng |
-| **TC03** | **Tự động đồng bộ khi có mạng lại** | 1. Bật lại kết nối Internet.<br>2. Quan sát phản ứng của ứng dụng. | WorkManager tự động phát hiện mạng, thực hiện đẩy Task A và B lên Server. Trạng thái tự động đổi thành `SYNCED` 🟢. | Sẵn sàng |
-| **TC04** | **Tính bền vững khi tắt app (Kill app)** | 1. Tắt mạng, tạo task.<br>2. Đóng ứng dụng hoàn toàn (Kill process).<br>3. Mở lại ứng dụng. | Dữ liệu vẫn hiển thị đầy đủ từ Room DB. Khi có mạng trở lại, tiến trình nền vẫn tiếp tục đẩy dữ liệu lên Server. | Sẵn sàng |
-| **TC05** | **Khả năng chịu lỗi khi Server sập** | 1. Tắt tiến trình FastAPI Server.<br>2. Thao tác thêm/sửa trên app. | Ứng dụng hoạt động mượt mà, không crash. WorkManager tự động kích hoạt cơ chế Exponential Backoff để thử lại sau. | Sẵn sàng |
-| **TC06** | **Chống trùng lặp (Idempotency)** | 1. Nhấn nút "Đồng bộ ngay" liên tục nhiều lần. | Nhờ khóa chính UUID v4 và chính sách `ExistingWorkPolicy.KEEP`, không phát sinh bản ghi trùng lặp trong database. | Sẵn sàng |
-| **TC07** | **Xung đột 2 thiết bị (Conflict LWW)** | 1. Cùng sửa Task A trên 2 máy khi offline.<br>2. Lần lượt bật mạng máy 1 rồi máy 2. | Áp dụng quy tắc Last-Write-Wins: Thiết bị có mốc `updated_at` lớn hơn sẽ là dữ liệu cuối cùng được ghi nhận trên Server và máy còn lại. | Sẵn sàng |
-| **TC08** | **Xóa công việc khi ngoại tuyến** | 1. Tắt mạng, chọn Xóa Task C.<br>2. Bật mạng trở lại. | Task C biến mất khỏi UI ngay lập tức. Khi có mạng, cờ `is_deleted = true` được gửi lên Server, Server không phát ngược lại Task C. | Sẵn sàng |
-| **TC09** | **Kiểm thử hiệu năng & Tải dữ liệu** | 1. Tạo 50 - 100 task khi ngoại tuyến.<br>2. Bật mạng và đo thời gian đồng bộ. | Tỷ lệ đồng bộ thành công đạt 100%, không mất mát dữ liệu. Ghi nhận thời gian hoàn tất để đưa vào báo cáo D7. | Sẵn sàng |
+| **TC01** | Tạo việc khi có mạng | Bật mạng $\rightarrow$ Thêm task mới | Lưu vào Room DB, đẩy lên Server thành công (`SYNCED` 🟢). | **PASS** |
+| **TC02** | Thao tác khi mất mạng | Bật Chế độ máy bay $\rightarrow$ Thêm, sửa task | Thao tác phản hồi tức thì ($0\text{ ms}$), hiển thị nhãn `PENDING` 🟡. | **PASS** |
+| **TC03** | Có mạng lại, tự đồng bộ | Tắt Chế độ máy bay | WorkManager tự phát hiện mạng, đẩy task lên và đổi sang `SYNCED` 🟢. | **PASS** |
+| **TC04** | Gián đoạn khi đang sync | Đang sync $\rightarrow$ Vuốt tắt app $\rightarrow$ Mở lại | Bản ghi kẹt tự khôi phục về `PENDING`, không mất mát dữ liệu. | **PASS** |
+| **TC05** | Máy chủ tạm không phản hồi | Tắt Server $\rightarrow$ Thao tác $\rightarrow$ Bấm Sync | App không crash, task chuyển sang `FAILED` 🔴. Khi bật lại Server tự retry. | **PASS** |
+| **TC06** | Tính lặp an toàn (Idempotency) | Bấm "Đồng bộ ngay" liên tục nhiều lần | Server nhận diện cùng timestamp, không sinh bản ghi trùng lặp. | **PASS** |
+| **TC07** | Hai máy cùng sửa (Xung đột) | 2 máy offline cùng sửa $\rightarrow$ Lần lượt bật mạng | Hội tụ về phiên bản sửa sau (LWW) trên cả 2 máy và máy chủ. | **PASS** |
+| **TC08** | Xóa khi mất mạng (Soft Delete) | Offline $\rightarrow$ Nhấn Xóa task $\rightarrow$ Bật mạng | Task ẩn tức thì, cờ `is_deleted = true` gửi lên server, không bị tải ngược. | **PASS** |
+| **TC09** | Đo tải đồng bộ nhiều bản ghi | Tạo lô 50 – 100 task offline $\rightarrow$ Bật mạng | 100% bản ghi thành công, đo thời gian chi tiết qua **Nhật ký đồng bộ**. | **PASS** |
 
 ---
 
 ## 7. HƯỚNG DẪN CÀI ĐẶT & CHẠY THỰC NGHIỆM
 
-### 7.1. Khởi chạy Backend (Python FastAPI)
+### 7.1. Chạy Backend (Python FastAPI)
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+* **Swagger UI Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Chạy bộ kiểm thử tự động:** `.\venv\Scripts\python.exe -m pytest -v`
 
-1. **Yêu cầu môi trường:** Python 3.10+
-2. **Cài đặt môi trường ảo & Thư viện:**
-   ```bash
-   cd backend
-   python -m venv venv
-   
-   # Kích hoạt trên Windows PowerShell:
-   .\venv\Scripts\Activate.ps1
-   # Hoặc trên Linux/macOS:
-   # source venv/bin/activate
-   
-   pip install -r requirements.txt
-   ```
-3. **Chạy Server:**
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-4. **Kiểm tra hoạt động:**
-   - Swagger UI Tài liệu tương tác: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - Kiểm tra Healthcheck: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
-
----
-
-### 7.2. Cấu hình & Chạy Android Client
-
-1. **Yêu cầu môi trường:** Android Studio Hedgehog / Iguana / Jellyfish trở lên, JDK 17.
-2. **Cấu hình Base URL kết nối Backend:**
-   > ⚠️ **Lưu ý cấu hình mạng quan trọng:**
-   > - **Nếu dùng Android Emulator:** Địa chỉ localhost của máy host là `http://10.0.2.2:8000/api/v1/`.
-   > - **Nếu dùng Máy thật qua Cáp USB:** Chạy lệnh sau trên máy tính để chuyển tiếp cổng:
-   >   ```bash
-   >   adb reverse tcp:8000 tcp:8000
-   >   ```
-   >   Sau đó cấu hình Base URL trong app là `http://localhost:8000/api/v1/`.
-   > - **Nếu dùng Máy thật qua Wi-Fi:** Sử dụng địa chỉ IP LAN của máy tính (ví dụ: `http://192.168.1.15:8000/api/v1/`).
-3. **Cấu hình Network Security:**
-   - Đảm bảo file `AndroidManifest.xml` có thuộc tính:
-     ```xml
-     <application
-         android:usesCleartextTraffic="true"
-         ... >
-     ```
-4. **Build & Chạy ứng dụng:**
-   - Mở thư mục `android/` trong Android Studio.
-   - Sync Gradle và nhấn **Run** (Shift + F10).
+### 7.2. Chạy Ứng Dụng Android
+1. Mở thư mục `android/` bằng **Android Studio**.
+2. Chờ Gradle đồng bộ thư viện và bấm **Run (Shift + F10)**.
+3. Cấu hình Server (Menu **⋮ > Cấu hình server**):
+   * Dùng Emulator: `http://10.0.2.2:8000/`
+   * Dùng Máy thật cắm cáp USB: `http://localhost:8000/` (kết hợp `adb reverse tcp:8000 tcp:8000`).

@@ -1,148 +1,109 @@
 # Android App – Offline-First Todo (Kotlin + Jetpack Compose)
 
-Ứng dụng Android quản lý công việc hoạt động **offline-first**, đồng bộ hai chiều với backend FastAPI trong thư mục `backend/`.
+> **Đề tài giữa kỳ:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
+> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
+> **Sinh viên thực hiện:**  
+> - PHẠM THANH NHÂN – 524H0020  
+> - TRẦN GIA HUY – 524H0092  
+>
+> **Nền tảng:** Android SDK (API 26 - 35), Kotlin 2.x, Jetpack Compose, Room Database, WorkManager, Retrofit 2
 
-- **Room** là nguồn dữ liệu duy nhất (SSOT) của giao diện: thêm / sửa / xóa / hoàn thành đều chạy được khi mất mạng.
-- **WorkManager** tự đồng bộ khi có mạng, tự thử lại với backoff hàm mũ, và dùng unique work để chống chạy trùng.
-- Xung đột được giải quyết bằng **Last-Write-Wins** theo `updated_at`, khớp với logic backend.
+---
 
-## 1. Yêu cầu
+Ứng dụng quản lý công việc hoạt động theo triết lý **Offline-First**, đồng bộ hai chiều với máy chủ trung tâm Python FastAPI:
+* **Room SQLite (SSOT):** Nguồn chân lý duy nhất cho tầng giao diện người dùng. Mọi thao tác thêm / sửa / xóa / hoàn thành phản hồi tức thì ($< 10\text{ ms}$) mà không phụ thuộc vào kết nối mạng.
+* **WorkManager (SyncWorker):** Tự động phát hiện mạng (`NetworkType.CONNECTED`), kích hoạt tiến trình ngầm đẩy dữ liệu, tự động thử lại khi lỗi với cơ chế giãn cách số mũ (**Exponential Backoff**).
+* **Last-Write-Wins (LWW):** Giải thuật phân giải xung đột dựa trên dấu thời gian đơn điệu (`updatedAt`), thống nhất trạng thái dữ liệu đa thiết bị hoàn toàn tự động.
 
-- Android Studio Koala (2024.1) trở lên, JDK 17 (có sẵn trong Android Studio)
-- Emulator hoặc máy thật Android 7.0 (API 24) trở lên
-- Python 3.10+ để chạy backend
+---
 
-## 2. Chạy backend
+## ⚡ 1. Khởi Chạy Nhanh Cho Buổi Demo (1-Click)
 
-```bash
-cd backend
-python -m venv venv
-# Windows: .\venv\Scripts\Activate.ps1     |  macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+1. **Khởi động Backend:** 
+   * Tại thư mục gốc `Midterm-Mobile`, nhấp đúp chuột vào file **`CHAY_DEMO.bat`**.
+   * Script sẽ tự động bật máy chủ FastAPI (cổng 8000), mở Swagger UI và thông cổng USB qua `adb reverse`.
+2. **Chạy ứng dụng Android:**
+   * Mở thư mục `android/` trong **Android Studio**.
+   * Bấm nút **Run (Shift + F10)** để cài đặt lên Máy ảo (Emulator) hoặc Điện thoại thật.
+
+---
+
+## 2. Cấu Hình Địa Chỉ Máy Chủ (Dynamic Base URL)
+
+Ứng dụng hỗ trợ đổi địa chỉ Server trực tiếp ngay trên giao diện mà không cần biên dịch lại mã nguồn:
+* Mở app $\rightarrow$ Nhìn góc trên bên phải $\rightarrow$ Bấm **dấu 3 chấm (⋮) $\rightarrow$ Cấu hình server**:
+
+| Thiết bị kiểm thử | Địa chỉ Base URL cần nhập | Ghi chú |
+| :--- | :--- | :--- |
+| **Máy ảo (Android Emulator)** | `http://10.0.2.2:8000/` | `10.0.2.2` là alias mạng trỏ về `localhost` của máy tính. |
+| **Máy thật cắm cáp USB** | `http://localhost:8000/` | **Khuyên dùng khi demo:** Nhờ script `CHAY_DEMO.bat` đã chạy `adb reverse tcp:8000 tcp:8000`, điện thoại gọi thẳng `localhost` máy tính mà không sợ khác Wi-Fi trường. |
+| **Máy thật chung Wi-Fi** | `http://192.168.x.x:8000/` | Dùng lệnh `ipconfig` trên Windows để lấy IP mạng Wi-Fi của laptop. |
+
+---
+
+## 3. Xuất File APK Cài Đặt (Deliverable D8)
+
+Để xuất file `.apk` nộp bài cho Giảng viên:
+1. Trong Android Studio, vào menu: **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+2. Chờ Gradle biên dịch xong, bấm vào chữ **locate** ở góc dưới bên phải màn hình.
+3. File APK nằm tại: `android/app/build/outputs/apk/debug/app-debug.apk`. Bản build này đã được ký bằng debug key nên có thể cài đặt trực tiếp lên bất kỳ thiết bị Android nào.
+
+---
+
+## 4. Kiến Trúc Phân Tầng & Luồng Dữ Liệu
+
+```
+UI Layer (Jetpack Compose)
+       │
+       ▼ (Sự kiện người dùng / StateFlow hiển thị)
+TaskViewModel & ConnectivityObserver
+       │
+       ▼ (Gọi hàm CRUD / Gán trạng thái PENDING)
+TaskRepository
+       │
+       ├─────────────────────────────────────────┐
+       ▼ (Ghi trực tiếp SSOT)                    ▼ (Kích hoạt tác vụ ngầm)
+Room DB (TaskDao & SyncLogDao)            SyncScheduler & WorkManager
+       ▲                                         │
+       │                                         ▼ (Chạy ngầm khi có mạng)
+       └─────── Flow phát dữ liệu mới ────────── SyncEngine & Retrofit 2
+                                                 │
+                                                 ▼ (HTTP POST /sync & GET /tasks)
+                                          FastAPI Server & SQLite
 ```
 
-Mở `http://localhost:8000/docs` để thấy Swagger UI.
+### 4.1. Bảng Trạng Thái Đồng Bộ (Chỉ Lưu Cục Bộ Trên Máy)
+* **`PENDING` (Chưa đồng bộ - Màu cam):** Bản ghi có thay đổi cục bộ chưa được máy chủ xác nhận.
+* **`SYNCING` (Đang đồng bộ):** Bản ghi đang được tiến trình ngầm gửi lên mạng.
+* **`SYNCED` (Đã đồng bộ - Màu xanh lá):** Bản ghi đã được máy chủ ghi nhận an toàn (nằm trong `applied_ids`).
+* **`FAILED` (Đồng bộ thất bại - Màu đỏ):** Phiên gửi gần nhất bị lỗi (rớt mạng, máy chủ sập), hệ thống sẽ tự động thử lại.
 
-## 3. Chạy app
-
-1. Android Studio → **File > Open** → chọn thư mục `android/` → chờ Gradle sync.
-2. Bấm **Run**.
-3. Địa chỉ server mặc định là `http://10.0.2.2:8000/`, dùng được ngay trên Emulator. Muốn đổi thì vào **⋮ > Cấu hình server**:
-
-| Thiết bị | Base URL |
-|---|---|
-| Emulator | `http://10.0.2.2:8000/` |
-| Máy thật cắm cáp (chạy `adb reverse tcp:8000 tcp:8000` trên máy tính) | `http://localhost:8000/` |
-| Máy thật cùng Wi-Fi | `http://<IP LAN máy tính>:8000/` (server phải chạy với `--host 0.0.0.0`, và tường lửa cho phép cổng 8000) |
-
-Build APK để nộp: **Build > Build App Bundle(s)/APK(s) > Build APK(s)**, hoặc chạy `./gradlew assembleRelease`. File ra ở `app/build/outputs/apk/`. Bản release được ký bằng debug key nên cài được ngay.
-
-## 4. Kiến trúc
-
+### 4.2. Tổ Chức Thư Mục Mã Nguồn
 ```
-UI (Compose)  ──►  TaskViewModel (StateFlow)  ──►  TaskRepository  ──►  Room (TaskDao)   ◄── SSOT
-     ▲                                                   │
-     └──────────── Flow tự phát lại khi Room đổi ─────────┘
-                                                         │ requestSync()
-                                                         ▼
-                                 SyncScheduler ─► WorkManager ─► SyncWorker ─► SyncEngine ─► Retrofit ─► FastAPI
+android/app/src/main/java/com/example/offlinefirsttodo/
+├── data/
+│   ├── local/          # AppDatabase, TaskEntity, TaskDao, SyncLogEntity, SyncLogDao (Room)
+│   ├── remote/         # TaskApi (Retrofit), TaskDto, SyncRequest, SyncResponse, ApiProvider
+│   └── repository/     # TaskRepository (Triết lý Offline-First, Monotonic Timestamp, Soft Delete)
+├── sync/               # SyncEngine (Thuật toán Push/Pull, CAS), SyncWorker, SyncScheduler, SyncConfig
+├── ui/                 # TaskScreen (Compose), TaskViewModel, Dialogs (Cấu hình Server, Nhật ký đồng bộ)
+└── util/               # ConnectivityObserver (Lắng nghe mạng), AppPrefs, TimeFormat
 ```
 
-| Thư mục | Nội dung |
-|---|---|
-| `data/local` | `TaskEntity`, `TaskDao`, `SyncLogEntity`, `AppDatabase` (Room) |
-| `data/remote` | `TaskApi` (Retrofit), DTO khớp schema backend, `ApiProvider` |
-| `data/repository` | `TaskRepository`: ghi vào Room + đánh dấu `PENDING` + yêu cầu sync |
-| `sync` | `SyncEngine` (thuật toán), `SyncWorker` (WorkManager), `SyncScheduler`, `SyncConfig` |
-| `ui` | `TaskScreen`, các dialog, `TaskViewModel` |
+---
 
-### Trạng thái đồng bộ của mỗi bản ghi (chỉ lưu trên máy)
+## 5. Hướng Dẫn Thực Nghiệm 9 Kịch Bản Bắt Buộc (TC01 – TC09)
 
-| Giá trị | Hiển thị | Ý nghĩa |
-|---|---|---|
-| `PENDING` | Chưa đồng bộ | Có thay đổi cục bộ chưa được server xác nhận |
-| `SYNCING` | Đang đồng bộ | Đang được gửi lên |
-| `SYNCED` | Đã đồng bộ | Id nằm trong `applied_ids` của server |
-| `FAILED` | Đồng bộ thất bại | Lần gửi gần nhất lỗi (lý do hiện dưới task), sẽ được thử lại |
+* **Cách bật/tắt mạng trên máy ảo / máy thật:** Kéo thanh thông báo trên cùng xuống $\rightarrow$ Bật/Tắt biểu tượng **Chế độ máy bay (Airplane mode)**.
 
-### Thuật toán đồng bộ (`SyncEngine`)
-
-1. **Push**: lấy mọi bản ghi khác `SYNCED`, đánh dấu `SYNCING`, rồi gọi `POST /tasks/sync` theo lô 100 bản ghi.
-   - Id thuộc `applied_ids`: chuyển `SYNCED`. Chỉ chuyển khi `updated_at` chưa đổi, vì người dùng có thể sửa tiếp trong lúc đang gửi; khi đó bản ghi giữ `PENDING` và được gửi ở vòng sau.
-   - Id thuộc `ignored_ids`: đây là **xung đột**, server có bản mới hơn. App gọi `GET /tasks/{id}` lấy bản server ghi đè vào Room và ghi nhật ký.
-   - Lặp tối đa 3 vòng để gửi nốt các thay đổi phát sinh trong lúc sync.
-2. **Pull**: gọi `GET /tasks?since=...`, rồi gộp vào Room như sau:
-
-   | Trạng thái ở máy | Xử lý |
-   |---|---|
-   | Chưa có bản ghi | Chèn mới |
-   | Đã đồng bộ và server mới hơn | Ghi đè |
-   | Có thay đổi chưa gửi nhưng server mới hơn | **Xung đột**, server thắng (LWW) |
-   | Máy mới hơn | Giữ nguyên |
-
-   Bản ghi `is_deleted = true` vẫn được lưu lại (tombstone), nên task đã xóa không bị tải trở lại.
-3. **Lỗi**:
-   - Mất mạng, timeout, server tắt, HTTP 5xx/408/429: WorkManager tự `retry` với backoff hàm mũ 10s → 20s → 40s… tối đa 6 lần.
-   - HTTP 4xx khác: dừng, đánh dấu `FAILED`.
-4. **Chống trùng (idempotency)**:
-   - `id` là UUID v4 do client sinh, và server so `updated_at`. Vì vậy gửi lại cùng payload không tạo bản ghi mới.
-   - Unique work dùng `KEEP`, nên 50 thao tác offline chỉ sinh 1 tác vụ sync. Có thêm `Mutex` để không bao giờ có 2 lần sync chạy song song.
-5. Có **sync định kỳ 15 phút** (mức tối thiểu của Android) để kéo thay đổi từ thiết bị khác về. Ngoài ra app sync mỗi khi mở và khi bấm **Đồng bộ ngay**.
-
-### Khi nào chính sách LWW làm mất dữ liệu
-
-- Hai máy cùng sửa một task khi offline: chỉ bản có `updated_at` lớn hơn được giữ, bản kia bị loại. Bản bị loại vẫn ghi lại trong **Nhật ký đồng bộ**.
-- `updated_at` lấy theo **đồng hồ thiết bị**. Nếu một máy chạy sai giờ (nhanh hơn), bản sửa của máy đó luôn thắng, dù thực tế được sửa trước.
-- Sửa và xóa cùng lúc: nếu lệnh xóa có `updated_at` mới hơn thì nội dung sửa bị mất, và ngược lại thì task "sống lại".
-
-## 5. Kịch bản kiểm thử (TC01 – TC09)
-
-Bật/tắt mạng trên Emulator: kéo thanh thông báo → **Airplane mode**. Hoặc chạy `adb shell svc wifi disable` và `adb shell svc data disable`.
-
-| Mã | Cách làm | Quan sát |
-|---|---|---|
-| TC01 | Có mạng, thêm task | Badge chuyển Chưa đồng bộ → Đang đồng bộ → **Đã đồng bộ**. Gọi `GET /tasks` trên Swagger thấy task |
-| TC02 | Bật Airplane mode, thêm và sửa task | Thẻ trạng thái đỏ **OFFLINE**, task hiện ngay với badge **Chưa đồng bộ**, không crash |
-| TC03 | Tắt Airplane mode | Không cần bấm gì, sau vài giây tất cả task chuyển **Đã đồng bộ** |
-| TC04 | Offline, thêm task → vuốt tắt app trong Recents → mở lại → bật mạng | Task vẫn còn. WorkManager vẫn tự đồng bộ, kể cả khi app đang đóng |
-| TC05 | Tắt server (Ctrl+C uvicorn), có mạng, thêm task | Badge **Đồng bộ thất bại** kèm lý do. Thẻ trạng thái báo "sẽ tự thử lại (lần n)". Bật lại server thì tự đồng bộ, hoặc bấm *Đồng bộ ngay* |
-| TC06 | Bấm **Đồng bộ ngay** liên tục nhiều lần | `GET /tasks` không có bản ghi trùng. Nhật ký cho thấy các lần sau chỉ "kéo về 0 thay đổi" |
-| TC07 | Xem mục 5.1 | Nhật ký có dòng **[XUNG ĐỘT]**, ghi rõ bản nào thắng và bản nào bị loại |
-| TC08 | Offline, xóa task → bật mạng | Task biến mất, `GET /tasks?since=0` thấy `is_deleted: true`, các lần sync sau không tải lại task |
-| TC09 | Offline, tạo 50–100 task → bật mạng | Mở **⋮ > Nhật ký đồng bộ** để xem thời gian (ms), số bản ghi đẩy/nhận, tỷ lệ thành công. Đối chiếu số lượng với `GET /tasks` để kiểm tra trùng/thiếu |
-
-### 5.1. Mô phỏng 2 thiết bị (TC07)
-
-**Cách A: hai Emulator.** Chạy 2 AVD cùng trỏ `http://10.0.2.2:8000/`.
-1. Đồng bộ để cả hai cùng có task X.
-2. Bật Airplane mode cả hai máy.
-3. Máy 1 sửa X thành "A", sau đó máy 2 sửa X thành "B".
-4. Bật mạng máy 1, rồi bật mạng máy 2.
-5. Kết quả: "B" thắng vì sửa muộn hơn. Bấm *Đồng bộ ngay* trên máy 1 để thấy máy 1 cũng đổi thành "B" và có log xung đột.
-
-**Cách B: một Emulator + Swagger đóng vai thiết bị thứ hai.**
-1. Task X đã đồng bộ.
-2. Bật Airplane mode trên máy, sửa X thành "Máy".
-3. Trên Swagger gọi `PUT /tasks/{id}` với `{"title": "Server"}`. Server tự gán `updated_at` = bây giờ, tức muộn hơn lần sửa trên máy.
-4. Tắt Airplane mode trên máy. Server trả id trong `ignored_ids`, app hiển thị "Server" và ghi nhật ký xung đột.
-5. Làm ngược thứ tự (PUT trước, sửa trên máy sau) thì bản trên máy thắng.
-
-## 6. Ghi chú cho backend
-
-- Code backend **không có** tiền tố `/api/v1`, trong khi docs D4/D5 và README gốc có. App đang gọi theo code: `/tasks`, `/tasks/sync`. Nếu backend thêm tiền tố, chỉ cần đổi Base URL thành `http://host:8000/api/v1/`.
-- `GET /tasks?since=` lọc theo `updated_at`, mà giá trị này là **giờ client lúc sửa**. Một thay đổi offline đẩy lên muộn sẽ không được máy khác kéo về theo kiểu tăng dần. Vì vậy app đang để `SyncConfig.FULL_PULL = true` (luôn gọi `since=0`). Khi backend thêm cột "thời điểm server nhận" và lọc theo cột đó thì đổi thành `false`.
-- Backend chưa có trường `description`, nên app chỉ có tiêu đề.
-
-## 7. Migration Room
-
-Schema hiện là version 1 và đang dùng `fallbackToDestructiveMigration()`. Khi thêm cột (ví dụ `description`), tăng `version` lên 2 và khai báo migration:
-
-```kotlin
-val MIGRATION_1_2 = object : Migration(1, 2) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE tasks ADD COLUMN description TEXT")
-    }
-}
-// Room.databaseBuilder(...).addMigrations(MIGRATION_1_2)
-```
+| Mã TC | Kịch bản kiểm thử | Thao tác thực hiện | Hiện tượng quan sát |
+| :---: | :--- | :--- | :--- |
+| **TC01** | Tạo việc khi có mạng | Có kết nối mạng $\rightarrow$ Thêm task mới | Task lưu ngay vào Room, sau đó chuyển sang nhãn xanh **Đã đồng bộ** (`SYNCED`). Kiểm tra Swagger thấy task đã lưu. |
+| **TC02** | Thao tác khi mất mạng | Bật Airplane mode $\rightarrow$ Thêm và sửa task | Thẻ trạng thái báo đỏ **OFFLINE**. Task hiện ngay với nhãn cam **Chưa đồng bộ** (`PENDING`), app mượt mà không crash. |
+| **TC03** | Có mạng lại, tự đồng bộ | Tắt Airplane mode | Không cần chạm vào màn hình, sau vài giây WorkManager tự kích hoạt và chuyển toàn bộ task sang **Đã đồng bộ** (`SYNCED`). |
+| **TC04** | Gián đoạn tiến trình (Kill app) | Offline, thêm task $\rightarrow$ Vuốt tắt ứng dụng đa nhiệm $\rightarrow$ Mở lại app | Dữ liệu cục bộ vẫn nguyên vẹn. Mở mạng app tự động tiếp tục chu trình đồng bộ. |
+| **TC05** | Máy chủ tạm tắt | Tắt Server (bấm `Ctrl + C` ở terminal) $\rightarrow$ Bấm "Đồng bộ ngay" | Task chuyển nhãn đỏ **Đồng bộ thất bại** (`FAILED`). Bật lại Server $\rightarrow$ WorkManager tự động thử lại thành công. |
+| **TC06** | Tính lặp an toàn (Gửi trùng) | Bấm liên tục nút **"Đồng bộ ngay"** nhiều lần | Máy chủ nhận diện đúng mốc thời gian $\rightarrow$ Không sinh thêm bản ghi trùng (Database vẫn chỉ có 1 task duy nhất). |
+| **TC07** | Hai máy cùng sửa (Xung đột) | Cả 2 máy tắt mạng $\rightarrow$ Máy 1 sửa X thành "A", Máy 2 sửa X thành "B" $\rightarrow$ Lần lượt bật mạng | Cả 2 máy và Server đều hội tụ về phiên bản sửa sau ("B") theo giải thuật **Last-Write-Wins**. Menu 3 chấm > **Nhật ký đồng bộ** ghi rõ log xung đột. |
+| **TC08** | Xóa khi mất mạng (Soft Delete) | Tắt mạng $\rightarrow$ Bấm nút Xóa task $\rightarrow$ Bật mạng lại | Task ẩn ngay trên màn hình (gán `is_deleted = true`). Khi đồng bộ không bị Server tải ngược lại. |
+| **TC09** | Đo tải đồng bộ lô lớn | Tạo lô 50 – 100 task ngoại tuyến $\rightarrow$ Bật mạng đồng bộ | Mở **Menu ⋮ > Nhật ký đồng bộ** để xem chi tiết thời gian (ms), số lượng bản ghi đẩy/nhận, và tỷ lệ thành công 100%. |
