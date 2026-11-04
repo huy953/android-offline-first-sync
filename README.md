@@ -2,19 +2,9 @@
 ## ỨNG DỤNG ANDROID OFFLINE-FIRST VỚI FASTAPI BACKEND
 
 > **Môn học:** Phát triển Ứng dụng Di động (Mobile Programming)  
-> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
 > **Đề tài 1:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
 > **Kiến trúc trọng tâm:** Offline-First Architecture • Single Source of Truth (SSOT) • Two-Way Sync Engine • Last-Write-Wins (LWW)  
 > **Nền tảng công nghệ:** Android (Kotlin, Jetpack Compose, Room Database, WorkManager, Retrofit 2) & Backend (Python 3.12, FastAPI, SQLAlchemy 2.0, SQLite)
-
----
-
-## 👥 THÔNG TIN NHÓM THỰC HIỆN
-
-| STT | Họ và Tên | Mã số sinh viên (MSSV) | Vai trò chính | Phụ trách chi tiết |
-| :-: | :--- | :---: | :--- | :--- |
-| **1** | **PHẠM THANH NHÂN** | **524H0020** | **Android Lead & UI/UX** | UI Jetpack Compose, Room DB, ViewModel, StateFlow, Bàn giao D1, D2, D8 |
-| **2** | **TRẦN GIA HUY** | **524H0092** | **Backend & Sync Engine** | FastAPI Server, WorkManager, SyncEngine LWW, Bàn giao D4, D5, D6, D7 |
 
 ---
 
@@ -144,16 +134,16 @@ Midterm-Mobile/
 
 ### 5.1. Bảng Trạng Thái Hoàn Thành Các Deliverables
 
-| Mã | Hạng mục Bàn giao | Người phụ trách | Trạng thái thực tế |
-| :-: | :--- | :-: | :---: |
-| **D1** | Báo cáo nghiên cứu lý thuyết (Offline-First, MVVM, Room, Retrofit, WorkManager, LWW) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 1 Báo cáo PDF) |
-| **D2** | Tài liệu phân tích và thiết kế (FR/NFR, Use Case, Kiến trúc 5 tầng, Sequence, ERD) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 2 Báo cáo PDF) |
-| **D3** | Mã nguồn ứng dụng Android (Kotlin, Jetpack Compose, Room, WorkManager, Retrofit) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Thư mục `android/`) |
-| **D4** | Mã nguồn máy chủ và API (FastAPI, CRUD, LWW Sync, Tài liệu API, Dữ liệu mẫu `sample_data.json`) | Trần Gia Huy | ✅ **Đã hoàn thành** (Thư mục `backend/`, `seed.py`) |
-| **D5** | Mô-đun đồng bộ & Thuật toán xử lý xung đột (Flowchart, Monotonic, Soft Delete, CAS) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 3 Báo cáo PDF) |
-| **D6** | Bộ kiểm thử và kết quả kiểm thử (Bảng TC01-TC09, ảnh chụp app thực tế) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 4 Báo cáo PDF) |
-| **D7** | Báo cáo thực nghiệm và đánh giá hiệu năng (Đo lô 10, 50, 100 bản ghi, ưu/khuyết điểm) | Cả 2 thành viên | ✅ **Đã hoàn thành** (Chương 5 Báo cáo PDF) |
-| **D8** | Sản phẩm trình diễn & Hướng dẫn (File APK, Video demo, Script `CHAY_DEMO.bat`) | Cả 2 thành viên | ✅ **Đã hoàn thành** (File APK + Script demo) |
+| Mã | Hạng mục Bàn giao | Trạng thái thực tế |
+| :-: | :--- | :---: |
+| **D1** | Báo cáo nghiên cứu lý thuyết (Offline-First, MVVM, Room, Retrofit, WorkManager, LWW) | ✅ **Đã hoàn thành** (Chương 1 Báo cáo PDF) |
+| **D2** | Tài liệu phân tích và thiết kế (FR/NFR, Use Case, Kiến trúc 5 tầng, Sequence, ERD) | ✅ **Đã hoàn thành** (Chương 2 Báo cáo PDF) |
+| **D3** | Mã nguồn ứng dụng Android (Kotlin, Jetpack Compose, Room, WorkManager, Retrofit) | ✅ **Đã hoàn thành** (Thư mục `android/`) |
+| **D4** | Mã nguồn máy chủ và API (FastAPI, CRUD, LWW Sync, Tài liệu API, Dữ liệu mẫu `sample_data.json`) | ✅ **Đã hoàn thành** (Thư mục `backend/`, `seed.py`) |
+| **D5** | Mô-đun đồng bộ & Thuật toán xử lý xung đột (Flowchart, Monotonic, Soft Delete, CAS) | ✅ **Đã hoàn thành** (Chương 3 Báo cáo PDF) |
+| **D6** | Bộ kiểm thử và kết quả kiểm thử (Bảng TC01-TC09, ảnh chụp app thực tế) | ✅ **Đã hoàn thành** (Chương 4 Báo cáo PDF) |
+| **D7** | Báo cáo thực nghiệm và đánh giá hiệu năng (Đo lô 10, 50, 100 bản ghi, ưu/khuyết điểm) | ✅ **Đã hoàn thành** (Chương 5 Báo cáo PDF) |
+| **D8** | Sản phẩm trình diễn & Hướng dẫn (File APK, Video demo, Script `CHAY_DEMO.bat`) | ✅ **Đã hoàn thành** (File APK + Script demo) |
 
 ---
 

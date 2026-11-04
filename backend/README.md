@@ -1,11 +1,6 @@
 # Backend Đồng Bộ Hai Chiều Cho Ứng Dụng Android Offline-First
 
 > **Đề tài giữa kỳ:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
-> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
-> **Sinh viên thực hiện:**  
-> - PHẠM THANH NHÂN – 524H0020  
-> - TRẦN GIA HUY – 524H0092  
->
 > **Công nghệ:** Python 3.12, FastAPI, SQLAlchemy 2.0, Pydantic v2, SQLite (tasks.db)
 
 ---

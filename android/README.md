@@ -1,11 +1,6 @@
 # Android App – Offline-First Todo (Kotlin + Jetpack Compose)
 
 > **Đề tài giữa kỳ:** Xây dựng ứng dụng Android hỗ trợ hoạt động ngoại tuyến và đồng bộ dữ liệu tự động  
-> **Giảng viên hướng dẫn:** TS. Lê Văn Vang  
-> **Sinh viên thực hiện:**  
-> - PHẠM THANH NHÂN – 524H0020  
-> - TRẦN GIA HUY – 524H0092  
->
 > **Nền tảng:** Android SDK (API 26 - 35), Kotlin 2.x, Jetpack Compose, Room Database, WorkManager, Retrofit 2
 
 ---

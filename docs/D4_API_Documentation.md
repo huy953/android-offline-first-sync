@@ -1,6 +1,6 @@
 # 📘 D4: TÀI LIỆU ĐẶC TẢ RESTFUL API & HƯỚNG DẪN BACKEND
 **Đề tài:** Ứng dụng Android Offline-First với Two-Way Sync Engine  
-**Người phụ trách:** Trần Gia Huy - 524H0092 (Backend & Sync Engine Lead)  
+**Kiến trúc:** Offline-First & Two-Way Sync Engine  
 **Công nghệ:** Python 3.12, FastAPI, SQLAlchemy 2.0, SQLite (tasks.db), Pydantic v2
 
 ---
