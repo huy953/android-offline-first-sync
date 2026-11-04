@@ -8,17 +8,6 @@
 
 ---
 
-## ⚡ KHỞI CHẠY NHANH BUỔI DEMO (1-CLICK)
-
-Để phục vụ giảng viên chấm điểm thực nghiệm nhanh nhất:
-1. **Trên máy tính:** Bấm đúp chuột vào file **`CHAY_DEMO.bat`** tại thư mục gốc:
-   * Tự động khởi động máy chủ FastAPI tại cổng `8000`.
-   * Tự động thông cổng qua USB (`adb reverse tcp:8000 tcp:8000`).
-   * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại `http://localhost:8000/docs`.
-2. **Trên điện thoại / Máy ảo:** Mở icon ứng dụng Todo lên và thao tác thêm/sửa/xóa trực tiếp.
-
----
-
 ## 📑 MỤC LỤC
 1. [Tổng quan Kiến trúc Hệ thống](#1-tổng-quan-kiến-trúc-hệ-thống)
 2. [Quy ước Dữ liệu Dùng chung (Data Contract)](#2-quy-ước-dữ-liệu-dùng-chung-data-contract)
@@ -165,7 +154,14 @@ Midterm-Mobile/
 
 ## 7. HƯỚNG DẪN CÀI ĐẶT & CHẠY THỰC NGHIỆM
 
-### 7.1. Chạy Backend (Python FastAPI)
+### 7.1. Khởi Chạy Nhanh (1-Click Demo)
+* **Cách nhanh nhất:** Nhấp đúp chuột vào file **`CHAY_DEMO.bat`** tại thư mục gốc:
+  * Tự động khởi động máy chủ FastAPI tại cổng `8000` (lắng nghe `0.0.0.0`).
+  * Tự động cấu hình chuyển tiếp cổng USB (`adb reverse tcp:8000 tcp:8000`) cho điện thoại cắm cáp.
+  * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại [http://localhost:8000/docs](http://localhost:8000/docs).
+* Mở ứng dụng Todo trên điện thoại hoặc máy ảo để thao tác kiểm thử trực tiếp.
+
+### 7.2. Chạy Thủ Công Backend (Python FastAPI)
 ```powershell
 cd backend
 python -m venv venv
@@ -176,7 +172,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 * **Swagger UI Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 * **Chạy bộ kiểm thử tự động:** `.\venv\Scripts\python.exe -m pytest -v`
 
-### 7.2. Chạy Ứng Dụng Android
+### 7.3. Chạy Ứng Dụng Android
 1. Mở thư mục `android/` bằng **Android Studio**.
 2. Chờ Gradle đồng bộ thư viện và bấm **Run (Shift + F10)**.
 3. Cấu hình Server (Menu **⋮ > Cấu hình server**):

@@ -5,23 +5,7 @@
 
 ---
 
-## ⚡ 1. Khởi Chạy Nhanh (1-Click Demo)
-
-Để phục vụ demo nhanh cho Giảng viên mà không cần gõ lệnh thủ công:
-* **Cách 1 (Nhanh nhất):** Ra thư mục gốc `Midterm-Mobile` và nhấp đúp chuột vào file **`CHAY_DEMO.bat`**:
-  * Tự động khởi động máy chủ FastAPI tại cổng `8000` (lắng nghe `0.0.0.0`).
-  * Tự động cấu hình thông cổng USB (`adb reverse tcp:8000 tcp:8000`) cho điện thoại cắm cáp.
-  * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại `http://localhost:8000/docs`.
-* **Cách 2 (Thủ công qua lệnh):**
-  ```powershell
-  cd backend
-  .\venv\Scripts\Activate.ps1
-  uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-  ```
-
----
-
-## 2. Kiến Trúc Hệ Thống (Layered Architecture)
+## 1. Kiến Trúc Hệ Thống (Layered Architecture)
 
 Hệ thống được tổ chức thành các tầng phân tách độc lập (Separation of Concerns), giúp mã nguồn dễ bảo trì, mở rộng và kiểm thử:
 
@@ -61,9 +45,9 @@ backend/
 
 ---
 
-## 3. Mô Hình Dữ Liệu & Nguyên Lý Đồng Bộ
+## 2. Mô Hình Dữ Liệu & Nguyên Lý Đồng Bộ
 
-### 3.1. Thực thể Task (Database Entity)
+### 2.1. Thực thể Task (Database Entity)
 | Thuộc tính | Kiểu dữ liệu | Phạm vi | Ý nghĩa chi tiết |
 | :--- | :--- | :--- | :--- |
 | `id` | `VARCHAR(36)` | Client & Server | Khóa chính, chuỗi UUIDv4 do Android client tự sinh khi tạo mới offline |
@@ -77,7 +61,7 @@ backend/
 
 ---
 
-### 3.2. Chiến lược giải quyết xung đột: Last-Write-Wins (LWW)
+### 2.2. Chiến lược giải quyết xung đột: Last-Write-Wins (LWW)
 Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint `POST /tasks/sync`:
 1. **Bản ghi chưa tồn tại trên Server**: Server thực hiện `INSERT` bản ghi mới và ghi nhận ID vào danh sách `applied_ids`.
 2. **Bản ghi đã tồn tại**: Server so khớp giá trị `updated_at`:
@@ -87,7 +71,7 @@ Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint
 
 ---
 
-### 3.3. Xóa logic (Soft Delete)
+### 2.3. Xóa logic (Soft Delete)
 Để hỗ trợ ứng dụng hoạt động ngoại tuyến:
 - Khi người dùng bấm xóa task, hệ thống **không** xóa vật lý (`DELETE FROM tasks`).
 - Bản ghi được cập nhật `is_deleted = True` và nâng `updated_at` lên thời điểm hiện tại.
@@ -95,14 +79,20 @@ Khi thiết bị Android đẩy danh sách công việc lên thông qua endpoint
 
 ---
 
-### 3.4. Tính Lặp An Toàn (Idempotency)
+### 2.4. Tính Lặp An Toàn (Idempotency)
 Nếu kết nối mạng chập chờn khiến client gửi lại cùng một payload nhiều lần, cơ chế LWW đảm bảo không gây ra lỗi `500`, không sinh ra các bản ghi trùng lặp (không duplicate task ID) và duy trì tính toàn vẹn dữ liệu.
 
 ---
 
-## 4. Cài Đặt Môi Trường Từ Đầu (Setup Guide)
+## 3. Cài Đặt Môi Trường & Khởi Chạy (Setup & Run Guide)
 
-### 4.1. Cài đặt thư viện
+### 3.1. Khởi chạy nhanh (1-Click Demo)
+* **Cách nhanh nhất:** Ra thư mục gốc `Midterm-Mobile` và nhấp đúp chuột vào file **`CHAY_DEMO.bat`**:
+  * Tự động khởi động máy chủ FastAPI tại cổng `8000` (lắng nghe `0.0.0.0`).
+  * Tự động cấu hình chuyển tiếp cổng USB (`adb reverse tcp:8000 tcp:8000`) cho điện thoại cắm cáp.
+  * Tự động mở trình duyệt web hiển thị trang **Swagger UI** tại [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 3.2. Cài đặt thư viện thủ công
 Tại thư mục `backend`:
 ```powershell
 # Tạo môi trường ảo (nếu chưa có)
@@ -118,7 +108,7 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-### 4.2. Khởi chạy Server
+### 3.3. Khởi chạy Server thủ công
 Lắng nghe trên `0.0.0.0` để cả Emulator và điện thoại thật đều kết nối được:
 ```powershell
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -127,7 +117,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - **Truy cập Swagger UI trực quan:** `http://localhost:8000/docs`
 - **Kiểm tra trạng thái máy chủ (Healthcheck):** `http://localhost:8000/health`
 
-### 4.3. Nạp dữ liệu mẫu ban đầu (Sample Data Seed)
+### 3.4. Nạp dữ liệu mẫu ban đầu (Sample Data Seed)
 Hệ thống cung cấp sẵn file dữ liệu mẫu `sample_data.json`. Để khởi tạo bảng và nạp dữ liệu mẫu vào `tasks.db`, chạy lệnh:
 ```powershell
 python seed.py
@@ -136,7 +126,7 @@ python seed.py
 
 ---
 
-## 5. Hướng Dẫn Kết Nối Từ Thiết Bị Android
+## 4. Hướng Dẫn Kết Nối Từ Thiết Bị Android
 
 Ứng dụng Android hỗ trợ **Cấu hình Base URL động** ngay trên giao diện (Vào menu **⋮ > Cấu hình server**):
 
@@ -148,9 +138,9 @@ python seed.py
 
 ---
 
-## 6. Danh Sách API Endpoints
+## 5. Danh Sách API Endpoints
 
-### 6.1. Incremental Pull (Lấy dữ liệu đồng bộ tăng dần)
+### 5.1. Incremental Pull (Lấy dữ liệu đồng bộ tăng dần)
 - **Method**: `GET`
 - **Path**: `/tasks?since={timestamp}`
 - **Tham số Query**:
@@ -169,7 +159,7 @@ python seed.py
 ]
 ```
 
-### 6.2. Batch Push Sync (Đồng bộ đẩy lên kèm Last-Write-Wins)
+### 5.2. Batch Push Sync (Đồng bộ đẩy lên kèm Last-Write-Wins)
 - **Method**: `POST`
 - **Path**: `/tasks/sync`
 - **Request Body** (chấp nhận object `{"tasks": [...]}` hoặc mảng `[...]`):
@@ -198,24 +188,24 @@ python seed.py
 }
 ```
 
-### 6.3. Tạo Mới Task Đơn Lẻ
+### 5.3. Tạo Mới Task Đơn Lẻ
 - **Method**: `POST`
 - **Path**: `/tasks`
 - **Phản hồi**: `201 Created`
 
-### 6.4. Cập Nhật Task Đơn Lẻ
+### 5.4. Cập Nhật Task Đơn Lẻ
 - **Method**: `PUT`
 - **Path**: `/tasks/{task_id}`
 - **Phản hồi**: `200 OK`
 
-### 6.5. Xóa Logic Task (Soft Delete)
+### 5.5. Xóa Logic Task (Soft Delete)
 - **Method**: `DELETE`
 - **Path**: `/tasks/{task_id}`
 - **Phản hồi**: `200 OK` (Bản ghi được gán `is_deleted = true`)
 
 ---
 
-## 7. Chạy Bộ Kiểm Thử Tự Động (Test Suite)
+## 6. Chạy Bộ Kiểm Thử Tự Động (Test Suite)
 
 Hệ thống đi kèm bộ kiểm thử toàn diện với SQLite in-memory, kiểm chứng độc lập và không ảnh hưởng đến cơ sở dữ liệu thật:
 ```powershell
