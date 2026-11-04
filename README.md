@@ -123,9 +123,9 @@ Midterm-Mobile/
 │   └── README.md                    # Hướng dẫn chi tiết cho Backend
 │
 └── docs/                            # Tài liệu bàn giao & Báo cáo kỹ thuật
+    ├── images/                      # Hình ảnh (Sơ đồ Use Case, Architecture, Sequence, ERD)
     ├── D4_API_Documentation.md      # Tài liệu đặc tả RESTful API
-    ├── D5_Sync_Algorithm.md         # Thuật toán đồng bộ hai chiều & phân giải LWW
-    └── CHUONG_3_DONG_BO_HAI_CHIEU_VA_XU_LY_XUNG_DOT.md # Nội dung chi tiết Chương 3
+    └── D5_Sync_Algorithm.md         # Thuật toán đồng bộ hai chiều & phân giải LWW
 ```
 
 ---
