@@ -50,7 +50,6 @@ app/build/
 # Android Studio & Gradle local files
 local.properties
 .cxx/
-*.apk
 *.aab
 captures/
 output.json
