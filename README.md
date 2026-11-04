@@ -126,6 +126,8 @@ Midterm-Mobile/
 │   │   ├── routers/                 # REST API Endpoints
 │   │   └── main.py                  # Điểm khởi tạo FastAPI app
 │   ├── tests/                       # Bộ kiểm thử tự động (pytest)
+│   ├── sample_data.json             # Dữ liệu mẫu khởi tạo (Deliverable D4)
+│   ├── seed.py                      # Script tự động nạp dữ liệu mẫu
 │   ├── tasks.db                     # Cơ sở dữ liệu SQLite
 │   ├── requirements.txt             # Danh sách thư viện Python
 │   └── README.md                    # Hướng dẫn chi tiết cho Backend
@@ -147,7 +149,7 @@ Midterm-Mobile/
 | **D1** | Báo cáo nghiên cứu lý thuyết (Offline-First, MVVM, Room, Retrofit, WorkManager, LWW) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 1 Báo cáo PDF) |
 | **D2** | Tài liệu phân tích và thiết kế (FR/NFR, Use Case, Kiến trúc 5 tầng, Sequence, ERD) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Chương 2 Báo cáo PDF) |
 | **D3** | Mã nguồn ứng dụng Android (Kotlin, Jetpack Compose, Room, WorkManager, Retrofit) | Phạm Thanh Nhân | ✅ **Đã hoàn thành** (Thư mục `android/`) |
-| **D4** | Mã nguồn máy chủ và API (FastAPI, SQLAlchemy, CRUD, Batch Sync, Swagger UI) | Trần Gia Huy | ✅ **Đã hoàn thành** (Thư mục `backend/`) |
+| **D4** | Mã nguồn máy chủ và API (FastAPI, CRUD, LWW Sync, Tài liệu API, Dữ liệu mẫu `sample_data.json`) | Trần Gia Huy | ✅ **Đã hoàn thành** (Thư mục `backend/`, `seed.py`) |
 | **D5** | Mô-đun đồng bộ & Thuật toán xử lý xung đột (Flowchart, Monotonic, Soft Delete, CAS) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 3 Báo cáo PDF) |
 | **D6** | Bộ kiểm thử và kết quả kiểm thử (Bảng TC01-TC09, ảnh chụp app thực tế) | Trần Gia Huy | ✅ **Đã hoàn thành** (Chương 4 Báo cáo PDF) |
 | **D7** | Báo cáo thực nghiệm và đánh giá hiệu năng (Đo lô 10, 50, 100 bản ghi, ưu/khuyết điểm) | Cả 2 thành viên | ✅ **Đã hoàn thành** (Chương 5 Báo cáo PDF) |

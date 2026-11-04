@@ -57,6 +57,8 @@ backend/
 │   ├── conftest.py           # Fixture SQLite in-memory & FastAPI TestClient
 │   ├── test_api.py           # Unit & Integration tests cho REST API
 │   └── test_sync.py          # Kiểm thử Idempotency (TC06), LWW (TC07), Soft Delete (TC08)
+├── sample_data.json          # File dữ liệu mẫu tiêu chuẩn (Minh chứng D4)
+├── seed.py                   # Script tự động nạp dữ liệu mẫu vào tasks.db
 ├── requirements.txt          # Danh sách thư viện phụ thuộc
 ├── tasks.db                  # File cơ sở dữ liệu SQLite cục bộ
 └── README.md                 # Tài liệu hướng dẫn triển khai, tích hợp và kiểm thử
@@ -129,6 +131,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 - **Truy cập Swagger UI trực quan:** `http://localhost:8000/docs`
 - **Kiểm tra trạng thái máy chủ (Healthcheck):** `http://localhost:8000/health`
+
+### 4.3. Nạp dữ liệu mẫu ban đầu (Sample Data Seed)
+Hệ thống cung cấp sẵn file dữ liệu mẫu `sample_data.json`. Để khởi tạo bảng và nạp dữ liệu mẫu vào `tasks.db`, chạy lệnh:
+```powershell
+python seed.py
+```
+*(Ghi chú: Script `CHAY_DEMO.bat` ở thư mục gốc cũng tự động thực hiện thao tác này trước khi mở server).*
 
 ---
 

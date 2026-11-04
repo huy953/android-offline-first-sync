@@ -31,9 +31,12 @@ echo =====================================================================
 echo.
 
 cd backend
+echo Dang kiem tra va nap du lieu mau (Seed Data)...
 if exist venv\Scripts\python.exe (
+    .\venv\Scripts\python.exe seed.py
     .\venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ) else (
+    python seed.py
     python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 )
 
